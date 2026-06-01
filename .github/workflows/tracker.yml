@@ -1,0 +1,47 @@
+name: Research Internship Tracker
+
+on:
+  schedule:
+    # Runs every Monday at 8:00 AM UTC (1:30 PM IST)
+    - cron: "0 8 * * 1"
+  workflow_dispatch:
+    # Allows manual trigger from GitHub Actions tab anytime
+
+jobs:
+  track-internships:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install anthropic requests beautifulsoup4
+
+      - name: Restore seen opportunities cache
+        uses: actions/cache@v4
+        with:
+          path: data/seen_opportunities.json
+          key: seen-opportunities-${{ github.run_id }}
+          restore-keys: |
+            seen-opportunities-
+
+      - name: Run internship tracker
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          EMAIL_SENDER: ${{ secrets.EMAIL_SENDER }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_RECIPIENT: ${{ secrets.EMAIL_RECIPIENT }}
+        run: python scraper.py
+
+      - name: Save updated seen opportunities
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: data/seen_opportunities.json
+          key: seen-opportunities-${{ github.run_id }}
